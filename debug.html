@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CannyMap - Debug Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .console-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .error { color: #ff6b6b; }
+        .warning { color: #ffd93d; }
+        .success { color: #6bcf7f; }
+        .info { color: #74b9ff; }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8">CannyMap - Debug Console</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Main App Status -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Main Application Status</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>Server Status:</span>
+                        <span class="success">✅ Running on :8000</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Main App:</span>
+                        <a href="/" target="_blank" class="text-blue-500 hover:underline">Open Application</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+                <div class="space-y-3">
+                    <button onclick="checkModules()" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600">
+                        Check Module Status
+                    </button>
+                    <button onclick="testImageProcessor()" class="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">
+                        Test Image Processor
+                    </button>
+                    <button onclick="clearConsole()" class="w-full bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                        Clear Console
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Console Output</h2>
+            <div id="console" class="console-output"></div>
+        </div>
+
+        <!-- Module Status -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Module Status</h2>
+            <div id="moduleStatus" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+    </div>
+
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const moduleStatusDiv = document.getElementById('moduleStatus');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            
+            const span = document.createElement('span');
+            span.className = type;
+            span.textContent = logEntry;
+            consoleDiv.appendChild(span);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        function clearConsole() {
+            consoleDiv.innerHTML = '';
+        }
+
+        function checkModules() {
+            log('Checking module status...', 'info');
+            
+            // Test if we can access the main app
+            const mainWindow = window.open('/', '_blank');
+            if (!mainWindow) {
+                log('❌ Cannot access main application', 'error');
+                return;
+            }
+
+            // Give it a moment to load
+            setTimeout(() => {
+                try {
+                    const modules = [
+                        { name: 'AppConfig', obj: 'window.AppConfig' },
+                        { name: 'Utils', obj: 'window.Utils' },
+                        { name: 'AppState', obj: 'window.AppState' },
+                        { name: 'AppInitializer', obj: 'window.AppInitializer' },
+                        { name: 'ImageProcessor', obj: 'window.imageProcessor' },
+                        { name: 'OpenCV', obj: 'window.cv' },
+                        { name: 'CannyAlgorithm', obj: 'window.CannyAlgorithm' },
+                        { name: 'UIManager', obj: 'window.UIManager' },
+                        { name: 'FileService', obj: 'window.FileService' }
+                    ];
+
+                    moduleStatusDiv.innerHTML = '';
+                    
+                    modules.forEach(module => {
+                        const card = document.createElement('div');
+                        card.className = 'border rounded-lg p-4';
+                        
+                        try {
+                            const exists = mainWindow.eval(`typeof ${module.obj}`) !== 'undefined';
+                            const status = exists ? '✅ Loaded' : '❌ Not Found';
+                            const statusClass = exists ? 'success' : 'error';
+                            
+                            card.innerHTML = `
+                                <h3 class="font-semibold">${module.name}</h3>
+                                <p class="${statusClass}">${status}</p>
+                            `;
+                            
+                            log(`${module.name}: ${status}`, exists ? 'success' : 'error');
+                        } catch (e) {
+                            card.innerHTML = `
+                                <h3 class="font-semibold">${module.name}</h3>
+                                <p class="error">❌ Error checking</p>
+                            `;
+                            log(`${module.name}: Error checking - ${e.message}`, 'error');
+                        }
+                        
+                        moduleStatusDiv.appendChild(card);
+                    });
+                    
+                    mainWindow.close();
+                } catch (e) {
+                    log(`Error accessing main app: ${e.message}`, 'error');
+                    mainWindow.close();
+                }
+            }, 2000);
+        }
+
+        function testImageProcessor() {
+            log('Testing image processor...', 'info');
+            
+            // This would test the image processor functionality
+            // For now, just log the attempt
+            log('Image processor test - would need actual image to test', 'warning');
+        }
+
+        // Initial load
+        log('Debug console initialized', 'success');
+        log('Server running on http://localhost:8000', 'info');
+        log('Click "Check Module Status" to verify all modules are loading', 'info');
+    </script>
+</body>
+</html>

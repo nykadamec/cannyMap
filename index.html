@@ -4,7 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edge Detection Studio</title>
+    <!-- TODO: Replace with production Tailwind CSS build for production -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Global OpenCV callback - must be defined before OpenCV.js loads
+        function onOpenCvReady() {
+            console.log('OpenCV.js loaded, waiting for modules...');
+            
+            // Wait for modules to be loaded
+            const checkModules = () => {
+                if (window.AppInitializer) {
+                    console.log('AppInitializer found, initializing...');
+                    window.AppInitializer.onOpenCvReady();
+                } else {
+                    console.log('AppInitializer not ready, retrying...');
+                    setTimeout(checkModules, 100);
+                }
+            };
+            
+            checkModules();
+        }
+    </script>
+    <!-- Debug Script -->
+    <script src="debug.js"></script>
     <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -503,12 +525,36 @@
     <!-- JavaScript -->
     <script src="js/config.js"></script>
     <script src="js/modules/utils.js"></script>
+    
+    <!-- Core modules -->
+    <script src="js/core/state.js"></script>
+    <script src="js/core/initializer.js"></script>
+    <script src="js/core/processing.js"></script>
+    <script src="js/core/presets.js"></script>
+    <script src="js/core/algorithms.js"></script>
+    
+    <!-- UI modules -->
+    <script src="js/ui/manager.js"></script>
+    <script src="js/ui/display.js"></script>
+    <script src="js/ui/zoom.js"></script>
+    
+    <!-- Service modules -->
+    <script src="js/services/file.js"></script>
+    <script src="js/services/export.js"></script>
+    <script src="js/services/webcam.js"></script>
+    <script src="js/services/batch.js"></script>
+    
+    <!-- Algorithm implementations -->
     <script src="js/algorithms/canny.js"></script>
     <script src="js/algorithms/sobel.js"></script>
     <script src="js/algorithms/prewitt.js"></script>
     <script src="js/algorithms/laplacian.js"></script>
     <script src="js/algorithms/scharr.js"></script>
+    
+    <!-- Image processing -->
     <script src="js/modules/imageProcessing.js"></script>
+    
+    <!-- Main application (legacy compatibility) -->
     <script src="js/main.js"></script>
 </body>
 </html>
