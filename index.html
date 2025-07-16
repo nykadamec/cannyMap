@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Detection Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'gradient-x': 'gradient-x 15s ease infinite',
+                        'gradient-y': 'gradient-y 15s ease infinite',
+                        'gradient-xy': 'gradient-xy 15s ease infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'gradient-y': {
+                            '0%, 100%': {
+                                'background-size': '400% 400%',
+                                'background-position': 'center top'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'center center'
+                            }
+                        },
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            }
+                        },
+                        'gradient-xy': {
+                            '0%, 100%': {
+                                'background-size': '400% 400%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            }
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-all duration-300">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+        <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-2xl shadow-2xl text-center border border-white/20">
+            <div class="relative">
+                <div class="animate-spin rounded-full h-16 w-16 border-4 border-transparent bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mb-6"></div>
+                <div class="absolute inset-2 bg-white dark:bg-slate-800 rounded-full"></div>
+            </div>
+            <p class="text-slate-700 dark:text-slate-300 font-medium">Loading OpenCV.js...</p>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-2">Preparing edge detection engine</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 animate-gradient-x"></div>
+        <div class="relative bg-white/10 backdrop-blur-md border-b border-white/20">
+            <div class="container mx-auto px-6 py-8">
+                <div class="flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="text-center">
+                            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2 animate-float">
+                                Edge Detection Studio
+                            </h1>
+                            <p class="text-blue-100 text-lg font-medium">
+                                Professional AI-powered edge detection with OpenCV.js
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <!-- Dark mode toggle -->
+                        <button id="darkModeToggle" class="group relative p-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl transition-all duration-300 border border-white/20" title="Toggle dark mode">
+                            <svg class="w-6 h-6 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            </svg>
+                        </button>
+                        <!-- Batch processing button -->
+                        <button id="batchProcessingBtn" class="group flex items-center space-x-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm px-4 py-3 rounded-xl transition-all duration-300 border border-white/20" title="Batch processing">
+                            <svg class="w-5 h-5 text-white transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                            <span class="text-white font-medium">Batch</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-12">
+        <!-- Upload Section -->
+        <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-3xl shadow-xl p-8 mb-12 border border-white/20 dark:border-slate-700/50">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 dark:text-white mb-2">Upload Your Image</h2>
+                <p class="text-slate-600 dark:text-slate-300">Start by uploading an image to detect edges</p>
+            </div>
+            
+            <!-- Drag and Drop Area -->
+            <div id="dropZone" class="group relative border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-12 text-center hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 cursor-pointer bg-gradient-to-br from-slate-50/50 to-blue-50/50 dark:from-slate-800/50 dark:to-slate-700/50">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative">
+                    <div class="mb-6 animate-float">
+                        <svg class="mx-auto h-16 w-16 text-slate-400 dark:text-slate-500 group-hover:text-blue-500 transition-colors duration-300" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </div>
+                    <p class="text-slate-700 dark:text-slate-300 text-xl font-semibold mb-2">Drag and drop an image here</p>
+                    <p class="text-slate-500 dark:text-slate-400">or click to select from your device</p>
+                    <p class="text-slate-400 dark:text-slate-500 text-sm mt-2">Supported formats: JPG, PNG, GIF, WebP</p>
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                </div>
+            </div>
+
+            <!-- Alternative upload options -->
+            <div class="mt-8 flex flex-wrap gap-4 justify-center">
+                <button id="webcamBtn" class="group flex items-center space-x-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="font-medium">Use Camera</span>
+                </button>
+                <button id="fileBtn" class="group flex items-center space-x-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                    <span class="font-medium">Browse Files</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Controls Section -->
+        <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-3xl shadow-xl p-8 mb-12 border border-white/20 dark:border-slate-700/50" id="controlsSection" style="display: none;">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-800 dark:text-white mb-2">Detection Settings</h2>
+                    <p class="text-slate-600 dark:text-slate-300">Configure your edge detection parameters</p>
+                </div>
+            </div>
+            
+            <!-- Preset Buttons -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">Quick Presets</h3>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="applyPreset('soft')" data-preset="soft" class="preset-btn px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300">Soft Edges</button>
+                    <button onclick="applyPreset('normal')" data-preset="normal" class="preset-btn active px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg">Normal</button>
+                    <button onclick="applyPreset('sharp')" data-preset="sharp" class="preset-btn px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300">Sharp Edges</button>
+                    <button onclick="applyPreset('artistic')" data-preset="artistic" class="preset-btn px-6 py-3 rounded-xl font-medium transition-all duration-300 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300">Artistic</button>
+                </div>
+            </div>
+            
+            <!-- Algorithm Selection -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">Edge Detection Algorithm</h3>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="selectAlgorithm('canny')" data-algorithm="canny" class="algorithm-btn active bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-6 py-3 rounded-xl font-medium shadow-lg">Canny</button>
+                    <button onclick="selectAlgorithm('sobel')" data-algorithm="sobel" class="algorithm-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-xl font-medium hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300">Sobel</button>
+                    <button onclick="selectAlgorithm('prewitt')" data-algorithm="prewitt" class="algorithm-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-xl font-medium hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300">Prewitt</button>
+                    <button onclick="selectAlgorithm('laplacian')" data-algorithm="laplacian" class="algorithm-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-xl font-medium hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300">Laplacian</button>
+                    <button onclick="selectAlgorithm('scharr')" data-algorithm="scharr" class="algorithm-btn bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-xl font-medium hover:bg-blue-100 dark:hover:bg-blue-900 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-300">Scharr</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Threshold Controls -->
+                <div class="space-y-6">
+                    <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Threshold Values</h3>
+                    
+                    <!-- Min Threshold -->
+                    <div class="space-y-3">
+                        <label class="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-400">
+                            <span>Minimum Threshold</span>
+                            <span id="minThresholdValue" class="text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">50</span>
+                        </label>
+                        <input type="range" id="minThreshold" min="0" max="255" value="50" 
+                               class="w-full h-3 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer slider-modern">
+                        <input type="number" id="minThresholdInput" min="0" max="255" value="50" 
+                               class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-all duration-300">
+                    </div>
+
+                    <!-- Max Threshold -->
+                    <div class="space-y-3">
+                        <label class="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-400">
+                            <span>Maximum Threshold</span>
+                            <span id="maxThresholdValue" class="text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">150</span>
+                        </label>
+                        <input type="range" id="maxThreshold" min="0" max="255" value="150" 
+                               class="w-full h-3 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer slider-modern">
+                        <input type="number" id="maxThresholdInput" min="0" max="255" value="150" 
+                               class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white transition-all duration-300">
+                    </div>
+                </div>
+
+                <!-- Display Options -->
+                <div class="space-y-6">
+                    <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300">Display Options</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Background toggle -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="grayscaleMode" class="w-5 h-5 text-blue-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                            <span class="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">Grayscale Background</span>
+                        </label>
+
+                        <!-- Invert edges -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="invertEdges" class="w-5 h-5 text-blue-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                            <span class="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">Invert Edges</span>
+                        </label>
+
+                        <!-- Compare view -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="compareView" class="w-5 h-5 text-blue-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                            <span class="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">Side-by-Side Comparison</span>
+                        </label>
+
+                        <!-- Overlay mode -->
+                        <label class="flex items-center space-x-3 cursor-pointer group">
+                            <input type="checkbox" id="overlayMode" class="w-5 h-5 text-blue-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                            <span class="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">Overlay Mode</span>
+                        </label>
+                    </div>
+
+                    <!-- Transparency slider for overlay -->
+                    <div id="transparencyControl" class="space-y-3" style="display: none;">
+                        <label class="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-400">
+                            <span>Overlay Transparency</span>
+                            <span id="transparencyValue" class="text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">0.5</span>
+                        </label>
+                        <input type="range" id="transparency" min="0" max="1" step="0.1" value="0.5" 
+                               class="w-full h-3 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer slider-modern">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-8 flex flex-wrap gap-4 justify-center">
+                <button id="processBtn" class="group flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span>Process Image</span>
+                </button>
+                <button id="resetBtn" class="group flex items-center space-x-2 bg-slate-500 hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span>Reset</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Image Display Section -->
+        <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-3xl shadow-xl p-8 mb-12 border border-white/20 dark:border-slate-700/50" id="imageSection" style="display: none;">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-800 dark:text-white mb-2">Result</h2>
+                    <p class="text-slate-600 dark:text-slate-300">Your processed image with detected edges</p>
+                </div>
+                
+                <!-- Zoom Controls -->
+                <div class="flex items-center space-x-3 bg-slate-100 dark:bg-slate-700 rounded-xl p-2" id="zoomControls">
+                    <button id="zoomOut" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors duration-300">
+                        <svg class="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path>
+                        </svg>
+                    </button>
+                    <span id="zoomLevel" class="text-sm font-mono text-slate-600 dark:text-slate-400 min-w-[4rem] text-center">100%</span>
+                    <button id="zoomIn" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg transition-colors duration-300">
+                        <svg class="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>
+                        </svg>
+                    </button>
+                    <button id="zoomReset" class="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-300 text-sm font-medium">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden" id="canvasContainer">
+                <div id="canvasWrapper" class="flex justify-center items-center min-h-[400px]">
+                    <canvas id="outputCanvas" class="max-w-full max-h-[600px] object-contain"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Export Section -->
+        <section class="bg-white/70 dark:bg-slate-800/70 backdrop-blur-md rounded-3xl shadow-xl p-8 border border-white/20 dark:border-slate-700/50" id="exportSection" style="display: none;">
+            <div class="text-center mb-8">
+                <h2 class="text-3xl font-bold text-slate-800 dark:text-white mb-2">Export & Download</h2>
+                <p class="text-slate-600 dark:text-slate-300">Save your processed images in various formats</p>
+            </div>
+            
+            <!-- Export Options -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-4">Export Options</h3>
+                <div class="flex flex-wrap gap-6 mb-6">
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" id="addWatermark" class="w-5 h-5 text-blue-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                        <span class="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">Add Watermark</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer group">
+                        <input type="checkbox" id="exportMetadata" class="w-5 h-5 text-blue-600 bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 dark:focus:ring-blue-600 focus:ring-2">
+                        <span class="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">Include Metadata</span>
+                    </label>
+                </div>
+                
+                <!-- JPEG Quality -->
+                <div class="mb-6">
+                    <label class="flex justify-between text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
+                        <span>JPEG Quality</span>
+                        <span id="jpegQualityValue" class="text-blue-600 dark:text-blue-400 font-mono bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">90%</span>
+                    </label>
+                    <input type="range" id="jpegQuality" min="10" max="100" value="90" 
+                           class="w-full h-3 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer slider-modern">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button id="downloadOriginal" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">Original</div>
+                        <div class="text-sm opacity-90">PNG Format</div>
+                    </div>
+                </button>
+                
+                <button id="downloadEdges" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">Edges</div>
+                        <div class="text-sm opacity-90">PNG Format</div>
+                    </div>
+                </button>
+                
+                <button id="downloadEdgesJPG" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">Edges</div>
+                        <div class="text-sm opacity-90">JPEG Format</div>
+                    </div>
+                </button>
+                
+                <button id="downloadCombined" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">Combined</div>
+                        <div class="text-sm opacity-90">PNG Format</div>
+                    </div>
+                </button>
+                
+                <button id="downloadPDF" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">PDF Report</div>
+                        <div class="text-sm opacity-90">With Metadata</div>
+                    </div>
+                </button>
+                
+                <button id="downloadSVG" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">Vector</div>
+                        <div class="text-sm opacity-90">SVG Format</div>
+                    </div>
+                </button>
+                
+                <button id="downloadAll" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">All Formats</div>
+                        <div class="text-sm opacity-90">ZIP Archive</div>
+                    </div>
+                </button>
+                
+                <button id="batchExport" class="group flex flex-col items-center space-y-3 bg-gradient-to-br from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    <svg class="w-8 h-8 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    <div class="text-center">
+                        <div class="font-semibold">Batch Export</div>
+                        <div class="text-sm opacity-90">Multiple Files</div>
+                    </div>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Webcam Modal -->
+    <div id="webcamModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl max-w-md w-full mx-4 border border-white/20 dark:border-slate-700/50">
+            <h3 class="text-2xl font-bold text-slate-800 dark:text-white mb-6 text-center">Camera Capture</h3>
+            <video id="webcamVideo" autoplay class="w-full rounded-2xl mb-6 bg-slate-100 dark:bg-slate-700"></video>
+            <div class="flex justify-end space-x-4">
+                <button id="captureBtn" class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Capture
+                </button>
+                <button id="closeWebcamBtn" class="bg-slate-500 hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Batch Processing Modal -->
+    <div id="batchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto border border-white/20 dark:border-slate-700/50">
+            <h3 class="text-2xl font-bold text-slate-800 dark:text-white mb-6 text-center">Batch Processing</h3>
+            
+            <!-- File Upload Area -->
+            <div class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-8 mb-6 text-center hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 bg-gradient-to-br from-slate-50/50 to-blue-50/50 dark:from-slate-800/50 dark:to-slate-700/50">
+                <input type="file" id="batchFileInput" multiple accept="image/*" class="hidden">
+                <div>
+                    <svg class="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                    <p class="text-slate-700 dark:text-slate-300 font-semibold mb-2">Select multiple images for batch processing</p>
+                    <button onclick="document.getElementById('batchFileInput').click()" class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
+                        Select Files
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Selected Files List -->
+            <div id="batchFilesList" class="mb-6 max-h-40 overflow-y-auto"></div>
+            
+            <!-- Progress Bar -->
+            <div id="batchProgress" class="mb-6" style="display: none;">
+                <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 mb-2">
+                    <div id="batchProgressBar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-400 text-center">Processed: <span id="batchProgressText">0 / 0</span></p>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <button id="startBatchBtn" class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Start Processing
+                </button>
+                <button id="closeBatchBtn" class="bg-slate-500 hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="relative overflow-hidden mt-20">
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800"></div>
+        <div class="relative bg-slate-900/80 backdrop-blur-md border-t border-slate-700/50">
+            <div class="container mx-auto px-6 py-12 text-center">
+                <h3 class="text-2xl font-bold text-white mb-2">Edge Detection Studio</h3>
+                <p class="text-slate-300 mb-4">Professional image processing powered by OpenCV.js and modern web technologies</p>
+                <div class="flex justify-center space-x-6 text-slate-400 text-sm">
+                    <span>Built with TailwindCSS</span>
+                    <span>•</span>
+                    <span>OpenCV.js Integration</span>
+                    <span>•</span>
+                    <span>Modern Web Standards</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="js/config.js"></script>
+    <script src="js/modules/utils.js"></script>
+    <script src="js/algorithms/canny.js"></script>
+    <script src="js/algorithms/sobel.js"></script>
+    <script src="js/algorithms/prewitt.js"></script>
+    <script src="js/algorithms/laplacian.js"></script>
+    <script src="js/algorithms/scharr.js"></script>
+    <script src="js/modules/imageProcessing.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
